@@ -1,0 +1,32 @@
+/* Content script styles */
+.pagechat-highlight {
+  background-color: yellow !important;
+  transition: background-color 0.3s ease;
+}
+
+.pagechat-overlay {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: rgba(33, 150, 243, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: Arial, sans-serif;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.pagechat-tooltip {
+  position: absolute;
+  background: #333;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-family: Arial, sans-serif;
+  z-index: 10001;
+  pointer-events: none;
+  white-space: nowrap;
+}
