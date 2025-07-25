@@ -1,40 +1,86 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  const toggleBtn = document.getElementById('toggle-btn');
-  const settingsBtn = document.getElementById('settings-btn');
-  const statusIndicator = document.querySelector('.status-indicator');
-  const statusText = document.querySelector('.status-text');
+  const startChatBtn = document.getElementById('start-chat-btn');
+  const sendBtn = document.getElementById('send-btn');
+  const messageInput = document.getElementById('message-input');
+  const messagesContainer = document.getElementById('messages');
+  const chatContainer = document.getElementById('chat-container');
+  const startContainer = document.getElementById('start-container');
 
-  // Load current state
-  const { isEnabled = true } = await chrome.storage.sync.get('isEnabled');
-  updateUI(isEnabled);
+  let pageContent = null;
 
-  // Toggle extension
-  toggleBtn.addEventListener('click', async () => {
-    const { isEnabled: currentState } = await chrome.storage.sync.get('isEnabled');
-    const newState = !currentState;
-    
-    await chrome.storage.sync.set({ isEnabled: newState });
-    updateUI(newState);
-    
-    // Send message to content script
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    chrome.tabs.sendMessage(tab.id, { action: 'toggle', enabled: newState });
-  });
-
-  // Settings button
-  settingsBtn.addEventListener('click', () => {
-    chrome.tabs.create({ url: chrome.runtime.getURL('options.html') });
-  });
-
-  function updateUI(isEnabled) {
-    if (isEnabled) {
-      statusIndicator.style.backgroundColor = '#4caf50';
-      statusText.textContent = 'Active';
-      toggleBtn.textContent = 'Disable Extension';
-    } else {
-      statusIndicator.style.backgroundColor = '#f44336';
-      statusText.textContent = 'Inactive';
-      toggleBtn.textContent = 'Enable Extension';
+  // Start chat button
+  startChatBtn.addEventListener('click', async () => {
+    try {
+      // Get page content first
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const response = await chrome.tabs.sendMessage(tab.id, { action: 'readPageContent' });
+      
+      if (response && response.success) {
+        pageContent = response.content;
+        
+        // Send page content to background for context
+        chrome.runtime.sendMessage({
+          action: 'setPageContent',
+          content: pageContent
+        });
+        
+        // Switch to chat interface
+        startContainer.style.display = 'none';
+        chatContainer.classList.add('active');
+        messageInput.disabled = false;
+        sendBtn.disabled = false;
+        messageInput.focus();
+        
+        // Add initial message
+        addMessage('Chat started! I have the page content as context. How can I help you?', 'bot');
+      } else {
+        alert('Could not read page content. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error starting chat:', error);
+      alert('Error starting chat. Please try again.');
     }
+  });
+
+  // Send message button
+  sendBtn.addEventListener('click', sendMessage);
+
+  // Enter key to send message
+  messageInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      sendMessage();
+    }
+  });
+
+  async function sendMessage() {
+    const message = messageInput.value.trim();
+    if (!message) return;
+
+    // Add user message
+    addMessage(message, 'user');
+    messageInput.value = '';
+
+    // Send to background for processing
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'processMessage',
+        message: message
+      });
+      
+      if (response && response.reply) {
+        addMessage(response.reply, 'bot');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      addMessage('Sorry, there was an error processing your message.', 'bot');
+    }
+  }
+
+  function addMessage(text, sender) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${sender}`;
+    messageDiv.textContent = text;
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
 });

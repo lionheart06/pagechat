@@ -4,6 +4,12 @@
   "version": "1.0.0",
   "description": "A browser extension for enhanced page interactions",
   
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "pagechat@lionheart06.github.io"
+    }
+  },
+  
   "permissions": [
     "activeTab",
     "storage"
@@ -21,7 +27,9 @@
   },
   
   "background": {
-    "service_worker": "background/background.js"
+    "service_worker": "background/background.js",
+    "scripts": ["background/background.js"],
+    "persistent": false
   },
   
   "content_scripts": [
